@@ -16,6 +16,12 @@
             <a href="/" class="sidebar-link {% if request.path == '/' %}active{% endif %}">
                 <span class="sidebar-icon">&#9776;</span> Libraries
             </a>
+            <a href="/bookmarks" class="sidebar-link {% if '/bookmarks' in request.path %}active{% endif %}">
+                <span class="sidebar-icon">&#9733;</span> Bookmarks
+            </a>
+            <a href="/profile" class="sidebar-link {% if '/profile' in request.path %}active{% endif %}">
+                <span class="sidebar-icon">&#9787;</span> Profile
+            </a>
             {% if current_user and current_user.is_admin %}
             <a href="/auth/admin" class="sidebar-link {% if '/admin' in request.path %}active{% endif %}">
                 <span class="sidebar-icon">&#9881;</span> Admin

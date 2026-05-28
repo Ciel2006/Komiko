@@ -40,6 +40,9 @@ class User(db.Model):
     is_admin = db.Column(db.Boolean, default=False)
     date_created = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
+    bookmarks = db.relationship("Bookmark", backref="user", lazy="dynamic", cascade="all, delete-orphan")
+    reading_progress = db.relationship("ReadingProgress", backref="user", lazy="dynamic", cascade="all, delete-orphan")
+
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
 
@@ -53,6 +56,34 @@ class User(db.Model):
             "is_admin": self.is_admin,
             "date_created": self.date_created.isoformat() if self.date_created else None,
         }
+
+
+class Bookmark(db.Model):
+    __tablename__ = "bookmarks"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    comic_id = db.Column(db.Integer, db.ForeignKey("comics.id"), nullable=False)
+    date_added = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+    __table_args__ = (db.UniqueConstraint("user_id", "comic_id"),)
+
+
+class ReadingProgress(db.Model):
+    __tablename__ = "reading_progress"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    comic_id = db.Column(db.Integer, db.ForeignKey("comics.id"), nullable=False)
+    chapter_id = db.Column(db.Integer, db.ForeignKey("chapters.id"), nullable=True)
+    last_page = db.Column(db.Integer, default=0)
+    date_updated = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    __table_args__ = (db.UniqueConstraint("user_id", "comic_id"),)
+
+    chapter = db.relationship("Chapter")
+
+    __table_args__ = (db.UniqueConstraint("user_id", "comic_id"),)
 
 
 class Library(db.Model):

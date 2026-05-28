@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}{{ server_name }} — Bookmarks{% endblock %}
+{% block topbar_title %}Bookmarks{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>Bookmarks</h1>
+</div>
+
+{% if comics %}
+<div class="comic-grid">
+    {% for comic in comics %}
+    <a href="/comic/{{ comic.id }}" class="comic-card">
+        {% if comic.cover_path %}
+        <img src="/covers/{{ comic.cover_path|basename }}" alt="{{ comic.title }}" class="comic-cover" loading="lazy">
+        {% else %}
+        <div class="comic-cover-placeholder">{{ comic.title[0] }}</div>
+        {% endif %}
+        <div class="comic-card-title">{{ comic.title }}</div>
+        <div class="comic-card-meta">
+            {{ comic.chapters.count() }} chapters
+            {% if comic.id in progress_data %}
+            &middot; Ch.{{ progress_data[comic.id].chapter_number }}
+            {% endif %}
+        </div>
+    </a>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <p>No bookmarks yet. Click the bookmark button on any comic to save it here.</p>
+</div>
+{% endif %}
+{% endblock %}

@@ -61,6 +61,8 @@
     {% endif %}
 
     <script>
+    const comicId = {{ comic.id }};
+    const chapterId = {{ chapter.id }};
     const pages = [{% for page in pages %}{id: {{ page.id }}, num: {{ page.page_number }}{% if not loop.last %},{% endif %}{% endfor %}];
     const totalPages = pages.length;
     let currentMode = 'scroll';
@@ -119,22 +121,42 @@
         progressFill.style.width = pct + '%';
     }
 
+    function saveProgress() {
+        fetch('/auth/progress/' + comicId, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({chapter_id: chapterId, last_page: currentPage})
+        }).catch(() => {});
+    }
+
+    let saveTimeout;
+    function debouncedSave() {
+        clearTimeout(saveTimeout);
+        saveTimeout = setTimeout(saveProgress, 3000);
+    }
+
     document.getElementById('prevBtn').addEventListener('click', () => {
         if (currentPage > 0) showPage(currentPage - 1);
+        debouncedSave();
     });
     document.getElementById('nextBtn').addEventListener('click', () => {
         if (currentPage < totalPages - 1) showPage(currentPage + 1);
+        debouncedSave();
     });
 
     document.addEventListener('keydown', (e) => {
         if (currentMode !== 'paginated') return;
         if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') showPage(currentPage - 1);
         if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); showPage(currentPage + 1); }
+        debouncedSave();
     });
 
-    window.addEventListener('scroll', updateProgress);
+    window.addEventListener('scroll', () => { updateProgress(); debouncedSave(); });
+    window.addEventListener('beforeunload', saveProgress);
+
     updateFit();
     updateProgress();
+    saveProgress();
     </script>
 </body>
 </html>

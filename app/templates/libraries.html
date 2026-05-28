@@ -2,6 +2,32 @@
 {% block title %}{{ server_name }} — Libraries{% endblock %}
 {% block topbar_title %}Libraries{% endblock %}
 {% block content %}
+{% if progress_data and libraries %}
+<div class="continue-section">
+    <h2>Continue Reading</h2>
+    <div class="continue-grid">
+        {% for lib in libraries %}
+        {% for comic in lib.comics %}
+        {% if comic.id in progress_data %}
+        {% set prog = progress_data[comic.id] %}
+        <a href="/reader/{{ prog.chapter_id }}" class="comic-card continue-card">
+            {% if comic.cover_path %}
+            <img src="/covers/{{ comic.cover_path|basename }}" alt="{{ comic.title }}" class="comic-cover" loading="lazy">
+            {% else %}
+            <div class="comic-cover-placeholder">{{ comic.title[0] }}</div>
+            {% endif %}
+            <div class="continue-info">
+                <div class="comic-card-title">{{ comic.title }}</div>
+                <div class="continue-chapter">Ch.{{ prog.chapter_number }}</div>
+            </div>
+        </a>
+        {% endif %}
+        {% endfor %}
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
 <div class="page-header">
     <h1>Your Libraries</h1>
     <button class="btn btn-primary" onclick="openCreateModal()">+ New Library</button>

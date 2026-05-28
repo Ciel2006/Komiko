@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}{{ server_name }} — Profile{% endblock %}
+{% block topbar_title %}Profile{% endblock %}
+{% block content %}
+<div class="profile-header">
+    <div class="profile-avatar">{{ user.username[0]|upper }}</div>
+    <div class="profile-info">
+        <h1>{{ user.username }}</h1>
+        <div class="profile-meta">
+            <span class="badge {% if user.is_admin %}badge-admin{% else %}badge-user{% endif %}">{{ 'Admin' if user.is_admin else 'User' }}</span>
+            <span>Joined {{ user.date_created.strftime('%b %d, %Y') if user.date_created else '' }}</span>
+        </div>
+    </div>
+</div>
+
+<div class="profile-stats">
+    <div class="stat-card">
+        <div class="stat-number">{{ bookmark_count }}</div>
+        <div class="stat-label">Bookmarks</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ comics_read|length }}</div>
+        <div class="stat-label">In Progress</div>
+    </div>
+</div>
+
+{% if comics_read %}
+<div class="profile-section">
+    <h2>Reading Progress</h2>
+    <div class="progress-list">
+        {% for item in comics_read %}
+        <a href="/reader/{{ item.progress.chapter_id }}" class="progress-item">
+            {% if item.comic.cover_path %}
+            <img src="/covers/{{ item.comic.cover_path|basename }}" alt="{{ item.comic.title }}" class="progress-thumb" loading="lazy">
+            {% else %}
+            <div class="progress-thumb-placeholder">{{ item.comic.title[0] }}</div>
+            {% endif %}
+            <div class="progress-item-info">
+                <div class="progress-item-title">{{ item.comic.title }}</div>
+                <div class="progress-item-detail">Ch.{{ item.chapter.chapter_number }} &middot; {{ item.total_chapters }} chapters total</div>
+            </div>
+            <div class="progress-item-action">
+                <span class="btn btn-sm btn-primary">Continue</span>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<div class="profile-section">
+    <h2>Change Password</h2>
+    <form method="POST" class="profile-form">
+        <input type="hidden" name="action" value="change_password">
+        <div class="form-group">
+            <label for="current_password">Current Password</label>
+            <input type="password" id="current_password" name="current_password" required>
+        </div>
+        <div class="form-group">
+            <label for="new_password">New Password</label>
+            <input type="password" id="new_password" name="new_password" placeholder="At least 4 characters" required>
+        </div>
+        <div class="form-group">
+            <label for="confirm_password">Confirm New Password</label>
+            <input type="password" id="confirm_password" name="confirm_password" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Update Password</button>
+    </form>
+</div>
+{% endblock %}

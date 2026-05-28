@@ -8,6 +8,12 @@
         <span class="breadcrumb-sep">/</span>
         <h1>{{ comic.title }}</h1>
     </div>
+    <div class="page-header-actions">
+        <button class="btn btn-bookmark {% if is_bookmarked %}bookmarked{% endif %}" id="bookmarkBtn" onclick="toggleBookmark({{ comic.id }})">
+            <span id="bookmarkIcon">{% if is_bookmarked %}&#9733;{% else %}&#9734;{% endif %}</span>
+            <span id="bookmarkText">{% if is_bookmarked %}Bookmarked{% else %}Bookmark{% endif %}</span>
+        </button>
+    </div>
 </div>
 
 <div class="comic-detail">
@@ -24,6 +30,15 @@
         <div class="comic-meta">
             <span>{{ chapters|length }} chapters</span>
         </div>
+        {% if progress %}
+        <div class="progress-indicator">
+            <span class="progress-label">Reading: Ch.{{ progress.chapter.chapter_number }}</span>
+            {% if new_chapters > 0 %}
+            <span class="badge badge-new">{{ new_chapters }} new</span>
+            {% endif %}
+            <a href="/reader/{{ progress.chapter_id }}" class="btn btn-sm btn-primary">Continue</a>
+        </div>
+        {% endif %}
     </div>
 </div>
 
@@ -31,7 +46,7 @@
 <div class="chapter-list">
     <h2>Chapters</h2>
     {% for chapter in chapters %}
-    <a href="/reader/{{ chapter.id }}" class="chapter-item">
+    <a href="/reader/{{ chapter.id }}" class="chapter-item {% if progress and progress.chapter_id == chapter.id %}chapter-current{% endif %}">
         <span class="chapter-number">Ch. {{ chapter.chapter_number|round|int if chapter.chapter_number == chapter.chapter_number|round|int else chapter.chapter_number }}</span>
         {% if chapter.title %}
         <span class="chapter-title">{{ chapter.title }}</span>
@@ -45,4 +60,25 @@
     <p>No chapters found.</p>
 </div>
 {% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function toggleBookmark(comicId) {
+    const res = await fetch('/auth/bookmark/' + comicId, {method: 'POST'});
+    const data = await res.json();
+    const btn = document.getElementById('bookmarkBtn');
+    const icon = document.getElementById('bookmarkIcon');
+    const text = document.getElementById('bookmarkText');
+    if (data.bookmarked) {
+        btn.classList.add('bookmarked');
+        icon.innerHTML = '&#9733;';
+        text.textContent = 'Bookmarked';
+    } else {
+        btn.classList.remove('bookmarked');
+        icon.innerHTML = '&#9734;';
+        text.textContent = 'Bookmark';
+    }
+}
+</script>
 {% endblock %}

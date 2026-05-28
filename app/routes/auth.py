@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, redirect, url_for, request, session, flash, g, jsonify, current_app
-from app.models import db, User, ServerConfig, Library, Page, Chapter, Comic
+from app.models import db, User, ServerConfig, Library, Page, Chapter, Comic, Bookmark, ReadingProgress
 from app.services.scanner import scan_library
 import os
 
@@ -10,7 +10,7 @@ auth_bp = Blueprint("auth", __name__)
 def reset_setup():
     if not current_app.debug:
         return "", 404
-    for table in [Page, Chapter, Comic, Library, User, ServerConfig]:
+    for table in [ReadingProgress, Bookmark, Page, Chapter, Comic, Library, User, ServerConfig]:
         table.__table__.drop(db.engine, checkfirst=True)
     db.create_all()
     session.clear()
@@ -127,6 +127,51 @@ def logout():
     return redirect(url_for("auth.login"))
 
 
+@auth_bp.route("/profile", methods=["GET", "POST"])
+def profile():
+    user = g.user
+    if not user:
+        return redirect(url_for("auth.login"))
+
+    if request.method == "POST":
+        action = request.form.get("action", "")
+
+        if action == "change_password":
+            current = request.form.get("current_password", "")
+            new = request.form.get("new_password", "")
+            confirm = request.form.get("confirm_password", "")
+
+            if not user.check_password(current):
+                flash("Current password is incorrect.", "error")
+            elif len(new) < 4:
+                flash("New password must be at least 4 characters.", "error")
+            elif new != confirm:
+                flash("New passwords do not match.", "error")
+            else:
+                user.set_password(new)
+                db.session.commit()
+                flash("Password changed successfully.", "success")
+
+        return redirect(url_for("auth.profile"))
+
+    bookmark_count = user.bookmarks.count()
+    progress_entries = user.reading_progress.all()
+    comics_read = []
+    for rp in progress_entries:
+        comic = Comic.query.get(rp.comic_id)
+        if comic:
+            chapter = Chapter.query.get(rp.chapter_id) if rp.chapter_id else None
+            total_chapters = comic.chapters.count()
+            comics_read.append({
+                "comic": comic,
+                "progress": rp,
+                "chapter": chapter,
+                "total_chapters": total_chapters,
+            })
+
+    return render_template("profile.html", user=user, bookmark_count=bookmark_count, comics_read=comics_read)
+
+
 @auth_bp.route("/admin")
 def admin():
     user = g.user
@@ -190,3 +235,42 @@ def update_settings():
     db.session.commit()
 
     return redirect(url_for("auth.admin"))
+
+
+@auth_bp.route("/bookmark/<int:comic_id>", methods=["POST"])
+def toggle_bookmark(comic_id):
+    user = g.user
+    if not user:
+        return jsonify({"error": "not logged in"}), 401
+
+    bm = Bookmark.query.filter_by(user_id=user.id, comic_id=comic_id).first()
+    if bm:
+        db.session.delete(bm)
+        db.session.commit()
+        return jsonify({"bookmarked": False})
+    else:
+        bm = Bookmark(user_id=user.id, comic_id=comic_id)
+        db.session.add(bm)
+        db.session.commit()
+        return jsonify({"bookmarked": True})
+
+
+@auth_bp.route("/progress/<int:comic_id>", methods=["POST"])
+def update_progress(comic_id):
+    user = g.user
+    if not user:
+        return jsonify({"error": "not logged in"}), 401
+
+    chapter_id = request.json.get("chapter_id")
+    last_page = request.json.get("last_page", 0)
+
+    rp = ReadingProgress.query.filter_by(user_id=user.id, comic_id=comic_id).first()
+    if rp:
+        rp.chapter_id = chapter_id
+        rp.last_page = last_page
+    else:
+        rp = ReadingProgress(user_id=user.id, comic_id=comic_id, chapter_id=chapter_id, last_page=last_page)
+        db.session.add(rp)
+    db.session.commit()
+
+    return jsonify({"ok": True})

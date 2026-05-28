@@ -11,7 +11,32 @@
     <button class="btn btn-secondary" onclick="scanLibrary()">Scan</button>
 </div>
 
+{% if progress_data and comics %}
+<div class="continue-section">
+    <h2>Continue Reading</h2>
+    <div class="continue-grid">
+        {% for comic in comics %}
+        {% if comic.id in progress_data %}
+        {% set prog = progress_data[comic.id] %}
+        <a href="/reader/{{ prog.chapter_id }}" class="comic-card continue-card">
+            {% if comic.cover_path %}
+            <img src="/covers/{{ comic.cover_path|basename }}" alt="{{ comic.title }}" class="comic-cover" loading="lazy">
+            {% else %}
+            <div class="comic-cover-placeholder">{{ comic.title[0] }}</div>
+            {% endif %}
+            <div class="continue-info">
+                <div class="comic-card-title">{{ comic.title }}</div>
+                <div class="continue-chapter">Ch.{{ prog.chapter_number }}</div>
+            </div>
+        </a>
+        {% endif %}
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
 {% if comics %}
+<div class="section-header"><h2>All Comics</h2></div>
 <div class="comic-grid">
     {% for comic in comics %}
     <a href="/comic/{{ comic.id }}" class="comic-card">
