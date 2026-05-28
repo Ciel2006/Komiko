@@ -1,0 +1,17 @@
+data/
+test_data/
+__pycache__/
+*.pyc
+*.pyo
+.git
+.gitignore
+*.md
+agent/
+delete_db_dev.py
+create_test_data.py
+test_app.py
+*.bat
+*.sh
+komiko.service
+docker-compose*.yml
+Dockerfile

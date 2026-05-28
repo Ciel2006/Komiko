@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}{{ server_name }} — {{ library.name }}{% endblock %}
+{% block topbar_title %}{{ library.name }}{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <a href="/" class="breadcrumb">Libraries</a>
+        <span class="breadcrumb-sep">/</span>
+        <h1>{{ library.name }}</h1>
+    </div>
+    <button class="btn btn-secondary" onclick="scanLibrary()">Scan</button>
+</div>
+
+{% if comics %}
+<div class="comic-grid">
+    {% for comic in comics %}
+    <a href="/comic/{{ comic.id }}" class="comic-card">
+        {% if comic.cover_path %}
+        <img src="/covers/{{ comic.cover_path|basename }}" alt="{{ comic.title }}" class="comic-cover" loading="lazy">
+        {% else %}
+        <div class="comic-cover-placeholder">{{ comic.title[0] }}</div>
+        {% endif %}
+        <div class="comic-card-title">{{ comic.title }}</div>
+        <div class="comic-card-meta">{{ comic.chapters.count() }} chapters</div>
+    </a>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <p>No comics found. Try scanning this library.</p>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function scanLibrary() {
+    await fetch('/api/libraries/{{ library.id }}/scan', {method: 'POST'});
+    window.location.reload();
+}
+</script>
+{% endblock %}

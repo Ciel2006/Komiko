@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}{{ server_name }} — Libraries{% endblock %}
+{% block topbar_title %}Libraries{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>Your Libraries</h1>
+    <button class="btn btn-primary" onclick="openCreateModal()">+ New Library</button>
+</div>
+
+{% if libraries %}
+<div class="library-grid">
+    {% for lib in libraries %}
+    <a href="/library/{{ lib.id }}" class="library-card">
+        <div class="library-card-icon">
+            {% if lib.library_type == 'manga' %}M{% elif lib.library_type == 'manhwa' %}Mw{% else %}C{% endif %}
+        </div>
+        <div class="library-card-info">
+            <h2>{{ lib.name }}</h2>
+            <span class="library-type">{{ lib.library_type }}</span>
+            <span class="library-meta">{{ lib.comics.count() }} comics</span>
+        </div>
+        <button class="btn-icon btn-scan" onclick="event.preventDefault();scanLibrary({{ lib.id }})" title="Scan library">&#x21bb;</button>
+        <button class="btn-icon btn-delete" onclick="event.preventDefault();deleteLibrary({{ lib.id }})" title="Delete library">&times;</button>
+    </a>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <p>No libraries yet. Create one to get started.</p>
+</div>
+{% endif %}
+
+<div class="modal" id="createModal">
+    <div class="modal-content">
+        <h2>Create Library</h2>
+        <form id="createForm" onsubmit="createLibrary(event)">
+            <div class="form-group">
+                <label for="libName">Name</label>
+                <input type="text" id="libName" name="name" placeholder="e.g. Western Comics" required>
+            </div>
+            <div class="form-group">
+                <label for="libType">Type</label>
+                <select id="libType" name="library_type">
+                    <option value="manga">Manga</option>
+                    <option value="manhwa">Manhwa</option>
+                    <option value="comics">Comics</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="libPath">Folder Path</label>
+                <input type="text" id="libPath" name="path" placeholder="e.g. D:\Comics\Manga" required>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn" onclick="closeCreateModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Create & Scan</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function openCreateModal() {
+    document.getElementById('createModal').classList.add('active');
+}
+function closeCreateModal() {
+    document.getElementById('createModal').classList.remove('active');
+}
+
+async function createLibrary(e) {
+    e.preventDefault();
+    const name = document.getElementById('libName').value;
+    const path = document.getElementById('libPath').value;
+    const library_type = document.getElementById('libType').value;
+
+    const res = await fetch('/api/libraries', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({name, path, library_type})
+    });
+    const data = await res.json();
+    if (res.ok) {
+        await fetch(`/api/libraries/${data.id}/scan`, {method: 'POST'});
+        window.location.reload();
+    } else {
+        alert(data.error || 'Failed to create library');
+    }
+}
+
+async function scanLibrary(id) {
+    await fetch(`/api/libraries/${id}/scan`, {method: 'POST'});
+    window.location.reload();
+}
+
+async function deleteLibrary(id) {
+    if (!confirm('Delete this library and all its comics?')) return;
+    await fetch(`/api/libraries/${id}`, {method: 'DELETE'});
+    window.location.reload();
+}
+</script>
+{% endblock %}

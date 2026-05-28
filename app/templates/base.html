@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ server_name }}{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <a href="/" class="sidebar-brand">{{ server_name }}</a>
+            <button class="sidebar-close" onclick="toggleSidebar()">&times;</button>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="/" class="sidebar-link {% if request.path == '/' %}active{% endif %}">
+                <span class="sidebar-icon">&#9776;</span> Libraries
+            </a>
+            {% if current_user and current_user.is_admin %}
+            <a href="/auth/admin" class="sidebar-link {% if '/admin' in request.path %}active{% endif %}">
+                <span class="sidebar-icon">&#9881;</span> Admin
+            </a>
+            {% endif %}
+        </nav>
+        <div class="sidebar-footer">
+            {% if current_user %}
+            <div class="sidebar-user">{{ current_user.username }}</div>
+            <a href="/auth/logout" class="sidebar-link sidebar-logout">Log out</a>
+            {% endif %}
+        </div>
+    </aside>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <header class="topbar">
+        <button class="topbar-toggle" onclick="toggleSidebar()">&#9776;</button>
+        <h1 class="topbar-title">{% block topbar_title %}{{ server_name }}{% endblock %}</h1>
+    </header>
+
+    <main class="main-content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="flash flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    {% block scripts %}{% endblock %}
+
+    <script>
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('open');
+        document.getElementById('sidebarOverlay').classList.toggle('active');
+    }
+    </script>
+</body>
+</html>

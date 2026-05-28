@@ -1,0 +1,19 @@
+version: "3.8"
+
+services:
+  komiko:
+    build: .
+    container_name: komiko
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    volumes:
+      - komiko_data:/data
+      - /path/to/your/comics:/comics:ro
+    environment:
+      - SECRET_KEY=change-me-in-production
+      - FLASK_ENV=production
+      - KOMIKO_DATA_DIR=/data
+
+volumes:
+  komiko_data:

@@ -1,0 +1,25 @@
+[Unit]
+Description=Komiko Comics Server
+After=network.target
+
+[Service]
+Type=simple
+User=komiko
+Group=komiko
+WorkingDirectory=/opt/komiko
+Environment=FLASK_ENV=production
+Environment=SECRET_KEY=change-me-in-production
+Environment=KOMIKO_DATA_DIR=/var/lib/komiko
+Environment=PATH=/opt/komiko/venv/bin:/usr/bin:/bin
+ExecStart=/opt/komiko/venv/bin/gunicorn \
+    --bind 0.0.0.0:5000 \
+    --workers 2 \
+    --threads 4 \
+    --timeout 120 \
+    run:app
+
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

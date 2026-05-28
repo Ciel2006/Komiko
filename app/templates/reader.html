@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>{{ server_name }} — {{ comic.title }} Ch.{{ chapter.chapter_number }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="reader-body">
+    <div class="reader-toolbar" id="toolbar">
+        <a href="/comic/{{ comic.id }}" class="reader-back">&larr; Back</a>
+        <span class="reader-title">{{ comic.title }} &mdash; Ch.{{ chapter.chapter_number }}</span>
+        <div class="reader-controls">
+            <button class="btn-icon" id="toggleMode" title="Toggle reading mode">&#8644;</button>
+            <button class="btn-icon" id="toggleFit" title="Toggle fit mode">&#10697;</button>
+        </div>
+    </div>
+
+    <div class="reader-container" id="readerContainer">
+        <div class="reader-pages" id="readerPages">
+            {% for page in pages %}
+            <div class="reader-page" data-page="{{ page.page_number }}">
+                <img src="/page_image/{{ page.id }}"
+                     alt="Page {{ page.page_number }}"
+                     loading="lazy"
+                     class="reader-img"
+                     data-page="{{ page.page_number }}">
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="reader-single" id="readerSingle" style="display:none;">
+            <img id="singleImg" src="" alt="" class="reader-img single-mode">
+            <button class="reader-nav reader-prev" id="prevBtn">&larr;</button>
+            <button class="reader-nav reader-next" id="nextBtn">&rarr;</button>
+        </div>
+    </div>
+
+    <div class="reader-progress" id="progressBar">
+        <div class="reader-progress-fill" id="progressFill"></div>
+    </div>
+
+    {% if chapters|length > 1 %}
+    <div class="reader-chapter-nav">
+        {% set ns = namespace(prev_ch=None, next_ch=None) %}
+        {% for ch in chapters %}
+            {% if ch.chapter_number < chapter.chapter_number %}
+                {% set ns.prev_ch = ch %}
+            {% endif %}
+            {% if ch.chapter_number > chapter.chapter_number and ns.next_ch is none %}
+                {% set ns.next_ch = ch %}
+            {% endif %}
+        {% endfor %}
+        {% if ns.prev_ch %}
+        <a href="/reader/{{ ns.prev_ch.id }}" class="btn btn-secondary">Previous Chapter</a>
+        {% endif %}
+        {% if ns.next_ch %}
+        <a href="/reader/{{ ns.next_ch.id }}" class="btn btn-secondary">Next Chapter</a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <script>
+    const pages = [{% for page in pages %}{id: {{ page.id }}, num: {{ page.page_number }}{% if not loop.last %},{% endif %}{% endfor %}];
+    const totalPages = pages.length;
+    let currentMode = 'scroll';
+    let currentFit = 'width';
+    let currentPage = 0;
+
+    const container = document.getElementById('readerContainer');
+    const scrollPages = document.getElementById('readerPages');
+    const singleView = document.getElementById('readerSingle');
+    const singleImg = document.getElementById('singleImg');
+    const progressFill = document.getElementById('progressFill');
+
+    document.getElementById('toggleMode').addEventListener('click', () => {
+        currentMode = currentMode === 'scroll' ? 'paginated' : 'scroll';
+        updateView();
+    });
+
+    document.getElementById('toggleFit').addEventListener('click', () => {
+        currentFit = currentFit === 'width' ? 'height' : 'width';
+        updateFit();
+    });
+
+    function updateView() {
+        if (currentMode === 'scroll') {
+            scrollPages.style.display = '';
+            singleView.style.display = 'none';
+        } else {
+            scrollPages.style.display = 'none';
+            singleView.style.display = '';
+            currentPage = Math.min(currentPage, totalPages - 1);
+            showPage(currentPage);
+        }
+    }
+
+    function updateFit() {
+        const imgs = document.querySelectorAll('.reader-img');
+        imgs.forEach(img => {
+            img.classList.remove('fit-width', 'fit-height');
+            img.classList.add(currentFit === 'width' ? 'fit-width' : 'fit-height');
+        });
+    }
+
+    function showPage(idx) {
+        currentPage = Math.max(0, Math.min(idx, totalPages - 1));
+        singleImg.src = '/page_image/' + pages[currentPage].id;
+        updateProgress();
+    }
+
+    function updateProgress() {
+        let pct;
+        if (currentMode === 'scroll') {
+            pct = Math.min(100, (window.scrollY / (document.body.scrollHeight - window.innerHeight)) * 100);
+        } else {
+            pct = ((currentPage + 1) / totalPages) * 100;
+        }
+        progressFill.style.width = pct + '%';
+    }
+
+    document.getElementById('prevBtn').addEventListener('click', () => {
+        if (currentPage > 0) showPage(currentPage - 1);
+    });
+    document.getElementById('nextBtn').addEventListener('click', () => {
+        if (currentPage < totalPages - 1) showPage(currentPage + 1);
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (currentMode !== 'paginated') return;
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') showPage(currentPage - 1);
+        if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); showPage(currentPage + 1); }
+    });
+
+    window.addEventListener('scroll', updateProgress);
+    updateFit();
+    updateProgress();
+    </script>
+</body>
+</html>

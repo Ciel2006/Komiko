@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome — Setup</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="setup-body">
+    <div class="setup-container">
+        <div class="setup-logo">Komiko</div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, msg in messages %}
+        <div class="flash flash-{{ category }}">{{ msg }}</div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <div class="setup-steps">
+            <div class="setup-step-dot {% if step >= 1 %}active{% endif %}" data-step="1"></div>
+            <div class="setup-step-connector"></div>
+            <div class="setup-step-dot {% if step >= 2 %}active{% endif %}" data-step="2"></div>
+            <div class="setup-step-connector"></div>
+            <div class="setup-step-dot {% if step >= 3 %}active{% endif %}" data-step="3"></div>
+        </div>
+
+        <div class="setup-slider" id="setupSlider">
+            <div class="setup-track" id="setupTrack">
+
+                <div class="setup-panel" id="panel1" {% if step != 1 %}style="display:none"{% endif %}>
+                    <div class="setup-panel-inner">
+                        <h1>Create Your Account</h1>
+                        <p class="setup-subtitle">This will be your admin account to manage the server.</p>
+                        <form method="POST" class="setup-form" id="step1Form">
+                            <input type="hidden" name="step" value="1">
+                            <div class="form-group">
+                                <label for="server_name">Server Name</label>
+                                <input type="text" id="server_name" name="server_name" value="Komiko" placeholder="My Komiko Server">
+                            </div>
+                            <div class="form-group">
+                                <label for="username">Username</label>
+                                <input type="text" id="username" name="username" placeholder="admin" required autofocus>
+                            </div>
+                            <div class="form-group">
+                                <label for="password">Password</label>
+                                <input type="password" id="password" name="password" placeholder="At least 4 characters" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-block">Continue</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="setup-panel" id="panel2" {% if step != 2 %}style="display:none"{% endif %}>
+                    <div class="setup-panel-inner">
+                        <h1>Add a Library</h1>
+                        <p class="setup-subtitle">Point Komiko to a folder containing your comics. You can add more later.</p>
+                        <form method="POST" class="setup-form" id="step2Form">
+                            <input type="hidden" name="step" value="2">
+                            <div class="form-group">
+                                <label for="lib_name">Library Name</label>
+                                <input type="text" id="lib_name" name="lib_name" placeholder="e.g. My Manga Collection">
+                            </div>
+                            <div class="form-group">
+                                <label for="lib_type">Type</label>
+                                <select id="lib_type" name="lib_type">
+                                    <option value="manga">Manga</option>
+                                    <option value="manhwa">Manhwa</option>
+                                    <option value="comics">Western Comics</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="lib_path">Folder Path</label>
+                                <input type="text" id="lib_path" name="lib_path" placeholder="e.g. D:\Comics\Manga">
+                                <div class="form-hint" id="pathHint"></div>
+                            </div>
+                            <div class="form-actions">
+                                <button type="button" class="btn btn-secondary" id="skipStep2">Skip for now</button>
+                                <button type="submit" class="btn btn-primary">Create Library</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="setup-panel" id="panel3" {% if step != 3 %}style="display:none"{% endif %}>
+                    <div class="setup-panel-inner">
+                        <h1>Invite Users</h1>
+                        <p class="setup-subtitle">Add people who'll use this server. You can always add more later.</p>
+                        <form method="POST" class="setup-form" id="step3Form">
+                            <input type="hidden" name="step" value="3">
+                            <div id="userEntries"></div>
+                            <button type="button" class="btn-add-user" id="addUserBtn">
+                                <span class="btn-add-icon">+</span> Add a user
+                            </button>
+                            <div class="form-actions" style="margin-top:28px">
+                                <button type="button" class="btn btn-secondary" id="skipStep3">Skip</button>
+                                <button type="submit" class="btn btn-primary">Finish Setup</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+    const currentStep = {{ step }};
+    let userIndex = 0;
+
+    function showPanel(num) {
+        document.querySelectorAll('.setup-panel').forEach(p => p.style.display = 'none');
+        const panel = document.getElementById('panel' + num);
+        if (panel) {
+            panel.style.display = '';
+            panel.classList.add('panel-enter');
+        }
+        document.querySelectorAll('.setup-step-dot').forEach(dot => {
+            const s = parseInt(dot.dataset.step);
+            dot.classList.toggle('active', s <= num);
+            dot.classList.toggle('completed', s < num);
+        });
+    }
+
+    function addUserEntry() {
+        const container = document.getElementById('userEntries');
+        const card = document.createElement('div');
+        card.className = 'user-card panel-enter';
+        card.dataset.index = userIndex;
+        const idx = userIndex;
+        card.innerHTML = `
+            <div class="user-card-header">
+                <span class="user-card-label">User</span>
+                <button type="button" class="user-card-remove" onclick="this.closest('.user-card').remove()" title="Remove">&times;</button>
+            </div>
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" name="add_username" placeholder="e.g. sarah">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" name="add_password" placeholder="At least 4 characters">
+            </div>
+            <div class="form-group">
+                <label>Role</label>
+                <select name="add_is_admin">
+                    <option value="0">User</option>
+                    <option value="1">Admin</option>
+                </select>
+            </div>
+        `;
+        container.appendChild(card);
+        userIndex++;
+        card.querySelector('input').focus();
+    }
+
+    document.getElementById('addUserBtn').addEventListener('click', addUserEntry);
+
+    document.getElementById('skipStep2').addEventListener('click', () => {
+        const form = document.getElementById('step2Form');
+        const hidden = document.createElement('input');
+        hidden.type = 'hidden';
+        hidden.name = 'step';
+        hidden.value = '2';
+        form.appendChild(hidden);
+
+        const nameInput = document.getElementById('lib_name');
+        const pathInput = document.getElementById('lib_path');
+        nameInput.removeAttribute('required');
+        pathInput.removeAttribute('required');
+        nameInput.value = '';
+        pathInput.value = '';
+
+        form.submit();
+    });
+
+    document.getElementById('skipStep3').addEventListener('click', () => {
+        const form = document.getElementById('step3Form');
+        form.querySelectorAll('[name="add_username"]').forEach(i => i.value = '');
+        form.querySelectorAll('[name="add_password"]').forEach(i => i.value = '');
+        form.submit();
+    });
+
+    const pathInput = document.getElementById('lib_path');
+    const pathHint = document.getElementById('pathHint');
+    if (pathInput) {
+        pathInput.addEventListener('blur', async () => {
+            const path = pathInput.value.trim();
+            if (!path) { pathHint.textContent = ''; pathHint.className = 'form-hint'; return; }
+            try {
+                const res = await fetch('/auth/setup/validate-path', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: 'path=' + encodeURIComponent(path)
+                });
+                const data = await res.json();
+                if (data.valid) {
+                    pathHint.textContent = 'Folder found';
+                    pathHint.className = 'form-hint hint-success';
+                } else {
+                    pathHint.textContent = 'Folder not found';
+                    pathHint.className = 'form-hint hint-error';
+                }
+            } catch(e) {
+                pathHint.textContent = '';
+            }
+        });
+    }
+
+    showPanel(currentStep);
+    </script>
+</body>
+</html>
